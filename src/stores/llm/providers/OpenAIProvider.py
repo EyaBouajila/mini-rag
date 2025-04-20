@@ -24,8 +24,7 @@ class OpenAIProvider(LLMInterface):
 
         self.client = OpenAI(
             api_key = self.api_key,
-            # base_url = self.base_url
-            base_url="https://models.inference.ai.azure.com"
+            base_url = self.base_url if self.base_url and len(self.base_url) else None
         )
 
         self.enums = OpenAIEnums

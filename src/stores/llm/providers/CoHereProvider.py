@@ -2,14 +2,16 @@ from ..LLMInterface import LLMInterface
 from ..LLMEnums import CoHereEnums, DocumentTypeEnum
 import cohere
 import logging
+import time
 
 class CoHereProvider(LLMInterface):
-    def __init__(self, api_key: str,
+    def __init__(self, api_key: str, base_url: str = None,
                  default_input_max_characters: int = 1000,
                  default_generation_max_output_tokens: int = 1000,
                  default_generation_temperature: float = 0.1):
         
         self.api_key = api_key
+        self.base_url = base_url
 
         self.default_input_max_characters = default_input_max_characters
         self.default_generation_max_output_tokens = default_generation_max_output_tokens
@@ -21,7 +23,8 @@ class CoHereProvider(LLMInterface):
         self.embedding_size = None
 
         self.client = cohere.Client(
-            api_key=self.api_key
+            api_key=self.api_key,
+            base_url=self.base_url
         )
 
 
@@ -51,6 +54,10 @@ class CoHereProvider(LLMInterface):
         max_output_tokens = max_output_tokens if max_output_tokens else self.default_generation_max_output_tokens
         temperature = temperature if temperature else self.default_generation_temperature
 
+        chat_history.append(
+            self.construct_prompt(prompt=prompt, role=CoHereEnums.USER.value)
+        )
+
         response = self.client.chat(
             model = self.generation_model_id,
             chat_history = chat_history,
@@ -79,24 +86,83 @@ class CoHereProvider(LLMInterface):
         if document_type == DocumentTypeEnum.QUERY:
             input_type = CoHereEnums.QUERY
 
-        response = self.client.embed(
-            model = self.embedding_model_id,
-            texts = [self.process_text(text)],
-            input_type = input_type,
-            embedding_types = ['float']
-        )
+######## test 1 : undefinite looping until results (not production-friendly) ########
+        # delay_seconds = 10
+        # attempt = 0
+
+        # while True:
+        #     attempt += 1
+        #     try:
+        #         response = self.client.embed(
+        #             model=self.embedding_model_id,
+        #             texts=[self.process_text(text)],
+        #             input_type=input_type,
+        #             embedding_types=['float']
+        #         )
+
+        #         if response and response.embeddings and response.embeddings.float:
+        #             self.logger.info(f"Embedding successful on attempt {attempt}")
+        #             return response.embeddings.float[0]
+
+        #         self.logger.warning(f"Attempt {attempt}: Empty embedding response")
+        #     except Exception as e:
+        #         self.logger.error(f"Attempt {attempt}: Exception during embedding: {e}")
+
+        #     self.logger.info(f"Retrying in {delay_seconds} seconds...")
+        #     time.sleep(delay_seconds)
+
+######## test 2 : definite looping until results (not production-friendly & unknown max_attempts) ########
+        # max_attempts = 20
+        # delay_seconds = 2
+
+        # for attempt in range(1, max_attempts + 1):
+        #     try:
+        #         response = self.client.embed(
+        #             model=self.embedding_model_id,
+        #             texts=[self.process_text(text)],
+        #             input_type=input_type,
+        #             embedding_types=['float']
+        #         )
+
+        #         if response and response.embeddings and response.embeddings.float:
+        #             return response.embeddings.float[0]
+
+        #         self.logger.warning(f"Empty embedding response on attempt {attempt}")
+        #     except Exception as e:
+        #         self.logger.error(f"Exception during embedding (attempt {attempt}): {e}")
+
+        #     # Wait before retrying
+        #     time.sleep(delay_seconds)
+
+        # self.logger.error("Failed to get embedding after multiple attempts")
+        # return None
+
+        try:
+            # may have sent a request when the CoHere server returned an empty response (e.g. due to rate limiting, timeout, or internal server hiccup).
+            response = self.client.embed(
+                model = self.embedding_model_id,
+                texts = [self.process_text(text)],
+                input_type = input_type,
+                embedding_types = ['float']
+            )
+
+        except Exception as e:
+            self.logger.error(f"Exception during embedding: {e}")
+            return None
+
 
         if not response or not response.embeddings or not response.embeddings.float:
             self.logger.error("Error while embedding text with CoHere")
             return None
         
-        return response.embeddings.float[0]
+        return response.embeddings[0]
+        # # return response.embeddings or response.embeddings.float[0]
 
 
     def construct_prompt(self, prompt: str, role: str):
         return {
             "role": role,
-            "text": self.process_text(prompt)
+            "message": self.process_text(prompt)
         }
     
     
