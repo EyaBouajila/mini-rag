@@ -9,7 +9,7 @@ from models import ProcessingEnum
 
 
 class ProcessController(BaseController):
-    def __init__(self, project_id: str):
+    def __init__(self, project_id: int):
         super().__init__()
         self.project_id = project_id
         self.project_path = ProjectController().get_project_path(project_id=project_id)

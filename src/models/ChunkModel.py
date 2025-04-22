@@ -32,7 +32,7 @@ class ChunkModel(BaseDataModel):
         chunk._id = result.inserted_id
         return chunk
     
-    async def get_chunk(self, chunk_id: str):
+    async def get_chunk(self, chunk_id: int):
         result = await self.collection.find_one({"_id": ObjectId(chunk_id)})
         
         if result is None:
