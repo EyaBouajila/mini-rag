@@ -1,4 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing import List
 
 class Settings(BaseSettings):
 
@@ -37,6 +38,13 @@ class Settings(BaseSettings):
 
     PRIMARY_LAN: str = "en"
     DEFAULT_LANG: str = "en"
+
+    BASE_URL_LITERAL: List[str] = None
+    GENERATION_BACKEND_LITERAL: List[str] = None
+    EMBEDDING_BACKEND_LITERAL: List[str] = None
+    GENERATION_MODEL_ID_LITERAL: List[str] = None
+    EMBEDDING_MODEL_ID_LITERAL: List[str] = None
+    VECTOR_DB_BACKEND_LITERAL: List[str] = None
 
     class Config:
         env_file = ".env"
