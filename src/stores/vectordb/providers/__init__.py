@@ -1,1 +1,2 @@
 from .QadrantDBProvider import QdrantDBProvider
+from .PGVectorProvider import PGVectorProvider

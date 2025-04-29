@@ -3,6 +3,7 @@ from ..LLMEnums import CoHereEnums, DocumentTypeEnum
 import cohere
 import logging
 import time
+from typing import Union, List
 
 class CoHereProvider(LLMInterface):
     def __init__(self, api_key: str, base_url: str = None,
@@ -73,7 +74,7 @@ class CoHereProvider(LLMInterface):
         
         return response.text
     
-    def embed_text(self, text: str, document_type: str = None):
+    def embed_text(self, text: Union[str, List[str]], document_type: str = None):
         if not self.client:
             self.logger.error("CoHere client was not set")
             return None
@@ -81,6 +82,9 @@ class CoHereProvider(LLMInterface):
         if not self.embedding_model_id:
             self.logger.error("Embedding model for CoHere was not set")
             return None
+        
+        if isinstance(text, str):
+            text = [text]
         
         input_type = CoHereEnums.DOCUMENT
         if document_type == DocumentTypeEnum.QUERY:
@@ -139,9 +143,11 @@ class CoHereProvider(LLMInterface):
 
         try:
             # may have sent a request when the CoHere server returned an empty response (e.g. due to rate limiting, timeout, or internal server hiccup).
+            # maybe text: Union[str, List[str]] would solve it (instead of text: str)
+            # also check nested sessions 
             response = self.client.embed(
                 model = self.embedding_model_id,
-                texts = [self.process_text(text)],
+                texts = [self.process_text(t) for t in text],
                 input_type = input_type,
                 embedding_types = ['float']
             )
