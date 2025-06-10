@@ -12,7 +12,7 @@ class VectorDBProviderFactory:
     def create(self, provider: str):
         if provider == VectorDBEnums.QDRANT.value:
             qdrant_db_client = self.base_controller.get_database_path(db_name=self.config.VECTOR_DB_PATH)
-            print("Qdrant DB Path:", qdrant_db_client)
+            # print("Qdrant DB Path:", qdrant_db_client)
             return QdrantDBProvider(
                 db_client=qdrant_db_client,
                 distance_method=self.config.VECTOR_DB_DISTANCE_METHOD,
